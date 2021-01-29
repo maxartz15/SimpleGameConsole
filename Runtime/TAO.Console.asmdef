@@ -1,16 +1,14 @@
 {
-    "name": "COMPANYNAME.PACKAGENAME.Editor",
-    "references": [
-        "COMPANYNAME.PACKAGENAME"
-    ],
-    "includePlatforms": [
-        "Editor"
-    ],
+    "name": "TAO.Console",
+    "rootNamespace": "TAO.Console",
+    "references": [],
+    "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [],
-    "versionDefines": []
+    "versionDefines": [],
+    "noEngineReferences": false
 }

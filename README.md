@@ -1,13 +1,10 @@
-# [COMPANYNAME]() - PACKAGENAME
+# TECH ART OUTSOURCE - Console
 
-Description.
+Simple in-game console for Unity.
 
 ## Install
 
 [Installing from a Git URL](https://docs.unity3d.com/Manual/upm-ui-giturl.html)
-
-[Unitypackage](https://github.com/COMPANYNAME/PACKAGENAME/releases)
-
 
 ## LICENSE
 
