@@ -11,6 +11,23 @@ namespace TAO.Console
 	    {
 	        console = GetComponent<GameConsole>();
 	        console.AddCommand(Application.Quit);
+
+			//InvokeRepeating("Log", 1, 1);
 	    }
+
+		private void Update()
+		{
+			if (Input.GetKey(KeyCode.Space))
+			{
+				Log();
+			}
+		}
+
+		private void Log()
+		{
+			Debug.Log("Log");
+			Debug.LogWarning("Log");
+			Debug.LogError("Log");
+		}
 	}
 }

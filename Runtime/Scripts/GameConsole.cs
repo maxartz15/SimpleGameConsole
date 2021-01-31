@@ -39,28 +39,41 @@ namespace TAO.Console
 		[SerializeField]
 		private GUISkin skin = null;
 
+		// GUI.
 		private bool isOpen = false;
-		private int logHeight = 100;
+		private bool isLogOpen = false;
+		private bool showLogs = true;
+		private bool showWarnings = true;
+		private bool showErrors = true;
 		private string command = "";
 		private int suggestionIndex = -1;
 		private Vector2 logScrollPosition = Vector2.zero;
+
+		Rect consoleRect = new Rect(0, 0, 0, 0);
+		Rect logRect = new Rect(0, 0, 0, 0);
+
 		private const string inputControlName = "inputControl";
+		private string consoleWindowName = "Console";
 
 		// Data.
 		private List<LogMessage> log = new List<LogMessage>();
-		private Dictionary<string, Action> commands = new Dictionary<string, Action>();
+		private Dictionary<string, Command> commands = new Dictionary<string, Command>();
 		private List<string> suggestions = new List<string>();
 
 		private void Awake()
 		{
 			if (IsEnabled())
 			{
+				consoleWindowName = string.Format("Console - {0} v{1}", Application.productName, Application.version);
+
 				// Add base commands.
 				AddCommand(Help);
 				AddCommand(Clear);
 				AddCommand(Close);
 				AddCommand(SysInfo);
 				AddCommand(GameInfo);
+				AddCommand(ToggleConsole);
+				AddCommand(ToggleLog);
 
 				// Subscribe to Debug.Log.
 				Application.logMessageReceived += OnLog;
@@ -71,13 +84,6 @@ namespace TAO.Console
 			}
 		}
 
-		public void ToggleConsole()
-		{
-			isOpen = !isOpen;
-			logHeight = Screen.height / 3;
-			GUI.FocusControl(inputControlName);
-		}
-
 		public void Log(LogMessage logEntry)
 		{
 			log.Add(logEntry);
@@ -85,7 +91,7 @@ namespace TAO.Console
 	
 		public void Log(string message, LogType logType)
 		{
-			Log(new LogMessage(message, logType));
+			Log(new LogMessage(message, "",logType));
 		}
 
 		private void OnLog(string message, string stackTrace, LogType type)
@@ -129,15 +135,20 @@ namespace TAO.Console
 			logScrollPosition.y = 99999f;
 		}
 
-		public bool AddCommand(string name, Action action)
+		public bool AddCommand(Command command)
 		{
-			if (!commands.ContainsKey(name))
+			if (!commands.ContainsKey(command.name))
 			{
-				commands.Add(name, action);
+				commands.Add(command.name, command);
 				return true;
 			}
 
 			return false;
+		}
+
+		public bool AddCommand(string name, Action action)
+		{
+			return AddCommand(new Command(name, action));
 		}
 
 		public bool AddCommand(Action action)
@@ -152,13 +163,13 @@ namespace TAO.Console
 
 		public void ExcuteCommand(string name)
 		{
-			if (commands.TryGetValue(name, out Action action))
+			if (commands.TryGetValue(name, out Command c))
 			{
-				command = "";
+				this.command = "";
+
 				// Execute command.
-				action.Invoke();
+				c.action.Invoke();
 				logScrollPosition.y = 99999f;
-				GUI.FocusControl(inputControlName);
 			}
 		}
 
@@ -202,115 +213,85 @@ namespace TAO.Console
 
 			if (isOpen)
 			{
-				using (new GUILayout.VerticalScope(GUILayout.Width(Screen.width)))
+				var prevSkin = GUI.skin;
+				if (skin != null)
 				{
-					var prevSkin = GUI.skin;
-					if (skin != null)
-					{
-						GUI.skin = skin;
-					}
-
-					GUIHeader(e);
-					GUILog(e);
-					GUICommand(e);
-
-					GUI.skin = prevSkin;
+					GUI.skin = skin;
 				}
+
+				consoleRect.width = Screen.width;
+				consoleRect.height = 0;
+				consoleRect = GUILayout.Window(0, consoleRect, ConsoleWindow, consoleWindowName, GUILayout.ExpandHeight(true));
+
+				if (isLogOpen)
+				{
+					logRect.width = consoleRect.width;
+					logRect.height = Screen.height / 3;
+					logRect.y = Screen.height - logRect.height;
+					logRect = GUILayout.Window(1, logRect, LogWindow, "Log");
+				}
+
+				GUI.skin = prevSkin;
 			}
 		}
 
-		private void GUIHeader(Event e)
+		private void ConsoleWindow(int id)
 		{
-			using (new GUILayout.HorizontalScope(skin.box))
+			using (new GUILayout.VerticalScope())
 			{
-				GUILayout.Label(string.Format("Console - {0} v{1}", Application.productName, Application.version));
+				Event e = Event.current;
+
+				ConsoleMenu(e);
+
+				using (new GUILayout.VerticalScope())
+				{
+					// Handle input.
+					if (e.isKey && e.type == EventType.KeyDown && e.keyCode == enterKey)
+					{
+						ExcuteCommand(command);
+					}
+
+					if (e.isKey && e.type == EventType.KeyDown && e.keyCode == suggestionUpKey)
+					{
+						suggestionIndex = Mathf.Clamp(suggestionIndex - 1, 0, suggestions.Count - 1);
+						GUI.FocusControl(inputControlName);
+						e.Use();
+					}
+
+					if (e.isKey && e.type == EventType.KeyDown && e.keyCode == suggestionDownKey)
+					{
+						suggestionIndex = Mathf.Clamp(suggestionIndex + 1, 0, suggestions.Count - 1);
+						GUI.FocusControl(inputControlName);
+						e.Use();
+					}
+
+					// Input field.
+					GUI.SetNextControlName(inputControlName);
+					command = GUILayout.TextField(command, GUILayout.ExpandWidth(true));
+				}
+
+				ConsoleSuggestions(e);
+			}
+		}
+		
+		private void ConsoleMenu(Event e)
+		{
+			using (new GUILayout.HorizontalScope())
+			{
 				GUILayout.FlexibleSpace();
-				if (GUILayout.Button("Clear"))
+				if (GUILayout.Button("Log"))
 				{
-					log.Clear();
+					ToggleLog();
+				}
+				if (GUILayout.Button("Close"))
+				{
+					Close();
 				}
 			}
 		}
 
-		private void GUILog(Event e)
+		private void ConsoleSuggestions(Event e)
 		{
-			using (new GUILayout.VerticalScope(skin.box))
-			{
-				using (var scope = new GUILayout.ScrollViewScope(logScrollPosition, false, true, GUILayout.ExpandWidth(true), GUILayout.Height(logHeight)))
-				{
-					logScrollPosition = scope.scrollPosition;
-
-					// Display the log messages.
-					foreach (LogMessage entry in log)
-					{
-						if (entry.logType == LogType.Error || entry.logType == LogType.Exception)
-						{
-							GUI.color = Color.red;
-						}
-						else if (entry.logType == LogType.Warning)
-						{
-							GUI.color = Color.yellow;
-						}
-
-						string msg;
-						if (entry.displayStrackTrace)
-						{
-							msg = string.Format("↓ {0}\n{1}", entry.message, entry.stackTrace);
-						}
-						else
-						{
-							msg = string.Format("→ {0}", entry.message);
-						}
-
-						if (GUILayout.Button(msg, skin.label))
-						{
-							entry.displayStrackTrace = !entry.displayStrackTrace;
-						}
-
-						GUI.color = Color.white;
-					}
-				}
-			}
-		}
-
-		private void GUICommand(Event e)
-		{
-			// Handle input.
-			if (e.type == EventType.KeyDown && e.isKey && e.keyCode == enterKey)
-			{
-				ExcuteCommand(command);
-				e.Use();
-			}
-
-			if (suggestions.Count != 0 && suggestionIndex != -1)
-			{
-				if (e.type == EventType.KeyDown && e.isKey && e.keyCode == suggestionCompleteKey)
-				{
-					command = suggestions[suggestionIndex];
-					e.Use();
-				}
-
-				if (e.type == EventType.KeyDown && e.isKey && e.keyCode == suggestionUpKey)
-				{
-					suggestionIndex = Mathf.Clamp(suggestionIndex--, 0, suggestions.Count - 1);
-					e.Use();
-				}
-
-				if (e.type == EventType.KeyDown && e.isKey && e.keyCode == suggestionDownKey)
-				{
-					suggestionIndex = Mathf.Clamp(suggestionIndex++, 0, suggestions.Count - 1);
-					e.Use();
-				}
-			}
-
-			// Input field.
-			using (new GUILayout.HorizontalScope(skin.box))
-			{
-				GUILayout.Label("Command", GUILayout.ExpandWidth(false));
-				GUI.SetNextControlName(inputControlName);
-				command = GUILayout.TextField(command, GUILayout.ExpandWidth(true));
-			}
-
 			// Get suggestions.
 			suggestions.Clear();
 			if (!string.IsNullOrWhiteSpace(command))
@@ -322,23 +303,31 @@ namespace TAO.Console
 						suggestions.Add(k);
 					}
 				}
+
+				// Select first if we didn't have a suggestion already.
+				if (suggestions.Count != 0 && suggestionIndex == -1)
+				{
+					suggestionIndex = 0;
+				}
+			}
+
+			if (suggestions.Count != 0 && suggestionIndex != -1)
+			{
+				if (e.type == EventType.KeyDown && e.isKey && e.keyCode == suggestionCompleteKey)
+				{
+					command = suggestions[suggestionIndex];
+					e.Use();
+				}
 			}
 
 			// Draw suggestions.
 			if (suggestions.Count != 0)
 			{
-				// Select first if we didn't have a suggestion already.
-				if (suggestionIndex == -1)
-				{
-					suggestionIndex = 0;
-				}
-
 				// Draw suggestions.
-				using (new GUILayout.VerticalScope(skin.box))
+				using (new GUILayout.VerticalScope())
 				{
 					for (int i = 0; i < suggestions.Count; i++)
 					{
-						GUI.color = Color.gray;
 						if (i == suggestionIndex)
 						{
 							GUI.color = Color.white;
@@ -346,6 +335,7 @@ namespace TAO.Console
 						}
 						else
 						{
+							GUI.color = Color.gray;
 							GUILayout.Label(suggestions[i]);
 						}
 					}
@@ -356,9 +346,107 @@ namespace TAO.Console
 				suggestionIndex = -1;
 			}
 		}
+
+		private void LogWindow(int id)
+		{
+			Event e = Event.current;
+
+			LogMenu(e);
+
+			using (new GUILayout.VerticalScope())
+			{
+				using var scope = new GUILayout.ScrollViewScope(logScrollPosition, false, true, GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
+				logScrollPosition = scope.scrollPosition;
+
+				// Display the log messages.
+				foreach (LogMessage entry in log)
+				{
+					if (entry.logType == LogType.Error || entry.logType == LogType.Exception)
+					{
+						if (!showErrors)
+						{
+							continue;
+						}
+
+						GUI.color = Color.red;
+					}
+					else if (entry.logType == LogType.Warning)
+					{
+						if (!showWarnings)
+						{
+							continue;
+						}
+
+						GUI.color = Color.yellow;
+					}
+					else
+					{
+						if (!showLogs)
+						{
+							continue;
+						}
+					}
+
+					string msg;
+					if (entry.displayStrackTrace)
+					{
+						msg = string.Format("- {0}\n{1}", entry.message, entry.stackTrace);
+					}
+					else
+					{
+						msg = string.Format("+ {0}", entry.message);
+					}
+
+					if (GUILayout.Button(msg, skin.label))
+					{
+						entry.displayStrackTrace = !entry.displayStrackTrace;
+					}
+
+					GUI.color = Color.white;
+				}
+			}
+		}
+
+		private void LogMenu(Event e)
+		{
+			using (new GUILayout.HorizontalScope())
+			{
+				GUILayout.FlexibleSpace();
+
+				GUI.color = Color.white;
+				showLogs = GUILayout.Toggle(showLogs, "");
+				GUI.color = Color.yellow;
+				showWarnings = GUILayout.Toggle(showWarnings, "");
+				GUI.color = Color.red;
+				showErrors = GUILayout.Toggle(showErrors, "");
+
+				GUI.color = Color.white;
+				if (GUILayout.Button("Clear"))
+				{
+					log.Clear();
+				}
+			}
+		}
+
 		#endregion
 
 		#region BaseCommands
+		public void ToggleConsole()
+		{
+			isOpen = !isOpen;
+
+			if (isOpen)
+			{
+				GUI.FocusWindow(0);
+				GUI.FocusControl(inputControlName);
+			}
+		}
+
+		private void ToggleLog()
+		{
+			isLogOpen = !isLogOpen;
+		}
+
 		private void Clear()
 		{
 			log.Clear();
@@ -371,7 +459,7 @@ namespace TAO.Console
 			foreach (var c in commands)
 			{
 				string methodString = "";
-				foreach (var p in c.Value.Method.GetParameters())
+				foreach (var p in c.Value.action.Method.GetParameters())
 				{
 					methodString += string.Format("({0}){1}", p.ParameterType, p.Name);
 				}
@@ -379,7 +467,9 @@ namespace TAO.Console
 				msg += string.Format("\n{0}{1}", c.Key, methodString);
 			}
 
-			log.Add(new LogMessage(msg, LogType.Log));
+			log.Add(new LogMessage(msg, "", LogType.Log));
+
+			isLogOpen = true;
 		}
 
 		private void Close()
@@ -419,27 +509,31 @@ namespace TAO.Console
 
 	public class LogMessage
 	{
-		public string message = "";
-		public string stackTrace = "";
-		public LogType logType = LogType.Log;
-		public bool displayStrackTrace = false;
+		public string message;
+		public string stackTrace;
+		public LogType logType;
+		public bool displayStrackTrace;
 
-		public LogMessage(string message, string stackTrace, LogType logType)
+		public LogMessage(string message, string stackTrace = "", LogType logType = LogType.Log)
 		{
 			this.message = message;
 			this.stackTrace = stackTrace;
 			this.logType = logType;
+			this.displayStrackTrace = false;
 		}
+	}
 
-		public LogMessage(string message, LogType logType)
-		{
-			this.message = message;
-			this.logType = logType;
-		}
+	public struct Command
+	{
+		public string name;
+		public Action action;
+		public string description;
 
-		public LogMessage(string message)
+		public Command(string name, Action action, string description = "")
 		{
-			this.message = message;
+			this.name = name;
+			this.action = action;
+			this.description = description;
 		}
 	}
 }
