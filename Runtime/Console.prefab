@@ -10,8 +10,9 @@ GameObject:
   m_Component:
   - component: {fileID: 7318392474796800097}
   - component: {fileID: 6289178122972550161}
+  - component: {fileID: 46624395}
   m_Layer: 0
-  m_Name: Console
+  m_Name: GameConsole
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -43,15 +44,33 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: abdb2a186b0aa26438390af253278122, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  displayLogs: 1
-  displayWarnings: 1
-  displayErrors: 1
+  skin: {fileID: 11400000, guid: 759079d4c955abb4e89531ba07da3493, type: 2}
   showInEditor: 1
   showInDebug: 1
   showInRelease: 1
+  isOpen: 0
   toggleKey: 92
   enterKey: 13
   suggestionCompleteKey: 9
   suggestionUpKey: 273
   suggestionDownKey: 274
+--- !u!114 &46624395
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 515503159453027132}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 31e6962e515725a4a82706e982fb383f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
   skin: {fileID: 11400000, guid: 759079d4c955abb4e89531ba07da3493, type: 2}
+  showInEditor: 1
+  showInDebug: 1
+  showInRelease: 1
+  isOpen: 0
+  displayLogs: 1
+  displayWarnings: 1
+  displayErrors: 1

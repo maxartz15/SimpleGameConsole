@@ -2,14 +2,14 @@ using UnityEngine;
 
 namespace TAO.Console
 {
-	[RequireComponent(typeof(GameConsole))]
+	[RequireComponent(typeof(ConsoleWindow))]
 	public class ConsoleSampleCommands : MonoBehaviour
 	{
-	    private GameConsole console = null;
+	    private ConsoleWindow console = null;
 	
 	    private void Start()
 	    {
-	        console = GetComponent<GameConsole>();
+	        console = GetComponent<ConsoleWindow>();
 	        console.AddCommand(Application.Quit);
 
 			//InvokeRepeating("Log", 1, 1);
