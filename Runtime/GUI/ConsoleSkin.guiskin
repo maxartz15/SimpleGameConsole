@@ -187,15 +187,15 @@ MonoBehaviour:
       m_Top: 6
       m_Bottom: 6
     m_Margin:
-      m_Left: 4
-      m_Right: 4
-      m_Top: 4
-      m_Bottom: 4
-    m_Padding:
-      m_Left: 16
+      m_Left: 0
       m_Right: 0
-      m_Top: 4
+      m_Top: 0
       m_Bottom: 0
+    m_Padding:
+      m_Left: 12
+      m_Right: 12
+      m_Top: 8
+      m_Bottom: 4
     m_Overflow:
       m_Left: -2
       m_Right: 0
@@ -1065,7 +1065,7 @@ MonoBehaviour:
     m_Padding:
       m_Left: 0
       m_Right: 0
-      m_Top: 0
+      m_Top: 2
       m_Bottom: 0
     m_Overflow:
       m_Left: 0
@@ -1081,7 +1081,7 @@ MonoBehaviour:
     m_TextClipping: 1
     m_ImagePosition: 0
     m_ContentOffset: {x: 0, y: 0}
-    m_FixedWidth: 15
+    m_FixedWidth: 14
     m_FixedHeight: 0
     m_StretchWidth: 1
     m_StretchHeight: 0
@@ -1148,10 +1148,10 @@ MonoBehaviour:
     m_TextClipping: 1
     m_ImagePosition: 2
     m_ContentOffset: {x: 0, y: 0}
-    m_FixedWidth: 15
-    m_FixedHeight: 0
+    m_FixedWidth: 0
+    m_FixedHeight: 12
     m_StretchWidth: 0
-    m_StretchHeight: 1
+    m_StretchHeight: 0
   m_verticalScrollbarUpButton:
     m_Name: verticalscrollbarupbutton
     m_Normal:

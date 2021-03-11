@@ -3,9 +3,11 @@ using UnityEngine;
 
 namespace TAO.Console
 {
-    [RequireComponent(typeof(ConsoleWindow))]
-    public class LogWindow : Window
-    {
+	[RequireComponent(typeof(ConsoleWindow))]
+	public class LogWindow : Window
+	{
+		[Space]
+
 		[SerializeField]
 		private bool displayLogs = true;
 		[SerializeField]
@@ -13,8 +15,17 @@ namespace TAO.Console
 		[SerializeField]
 		private bool displayErrors = true;
 
-		private readonly List<LogMessage> log = new List<LogMessage>();
+		[Space]
+
+		[SerializeField]
+		private bool autoScroll = true;
+		[SerializeField]
+		private int maxLogEntries = 10000;
+
+		private readonly Queue<LogMessage> log = new Queue<LogMessage>();
+		private LogMessage selectedLog = null;
 		private Vector2 logScrollPosition = Vector2.zero;
+		private Vector2 selectedLogScrollPosition = Vector2.zero;
 		private ConsoleWindow consoleWindow = null;
 
 		protected override void Awake()
@@ -59,12 +70,11 @@ namespace TAO.Console
 
 			LogMenu(e);
 
+			// Log.
 			using (new GUILayout.VerticalScope())
 			{
 				using var scope = new GUILayout.ScrollViewScope(logScrollPosition, false, true, GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
 				logScrollPosition = scope.scrollPosition;
-
-				int index = 0;
 
 				// Display the log messages.
 				foreach (LogMessage entry in log)
@@ -108,10 +118,44 @@ namespace TAO.Console
 					if (GUILayout.Button(msg, skin.label))
 					{
 						entry.displayStrackTrace = !entry.displayStrackTrace;
+
+						if (e.button == 1)
+						{
+							selectedLog = entry;
+						}
 					}
 
 					GUI.color = Color.white;
-					index++;
+				}
+			}
+
+			// Selection.
+			if (selectedLog != null)
+			{
+				GUILayout.Box("", GUILayout.Height(2));
+
+				using (new GUILayout.VerticalScope(GUILayout.Height(rect.height * 0.5f)))
+				{
+					GUILayout.Box("", GUILayout.Height(2));
+
+					using (new GUILayout.HorizontalScope())
+					{
+						GUILayout.FlexibleSpace();
+
+						if (GUILayout.Button("Close"))
+						{
+							selectedLog = null;
+						}
+					}
+
+					if (selectedLog != null)
+					{
+						using var scope = new GUILayout.ScrollViewScope(selectedLogScrollPosition, false, true, GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
+						selectedLogScrollPosition = scope.scrollPosition;
+
+						string msg = string.Format("{0}\n{1}", selectedLog.message, selectedLog.stackTrace);
+						GUILayout.Label(msg, skin.label);
+					}
 				}
 			}
 		}
@@ -137,6 +181,9 @@ namespace TAO.Console
 				displayErrors = GUILayout.Toggle(displayErrors, "");
 
 				GUI.color = Color.white;
+
+				autoScroll = GUILayout.Toggle(autoScroll, "AutoScroll");
+
 				if (GUILayout.Button("Clear"))
 				{
 					log.Clear();
@@ -150,8 +197,16 @@ namespace TAO.Console
 
 		public void Log(LogMessage logEntry)
 		{
-			log.Add(logEntry);
-			logScrollPosition.y = float.MaxValue;
+			while (log.Count > maxLogEntries)
+			{
+				log.Dequeue();
+			}
+
+			log.Enqueue(logEntry);
+			if (autoScroll)
+			{
+				logScrollPosition.y = float.MaxValue;
+			}
 		}
 
 		public void Log(string message, LogType logType)

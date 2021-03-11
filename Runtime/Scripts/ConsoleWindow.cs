@@ -6,6 +6,8 @@ namespace TAO.Console
 {
 	public class ConsoleWindow : Window
 	{
+		[Space]
+
 		[SerializeField]
 		private KeyCode toggleKey = KeyCode.Backslash;
 		[SerializeField]
