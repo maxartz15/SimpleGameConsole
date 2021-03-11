@@ -1,7 +1,7 @@
 {
   "name": "com.tech_art_outsource.simple_console",
   "displayName": "TAO Simple Console",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "unity": "2020.2",
   "unityRelease": "1f1",
   "description": "Simple In-Game Console to view messages and execute commands.",
